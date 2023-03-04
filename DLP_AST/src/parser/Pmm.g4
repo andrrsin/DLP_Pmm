@@ -6,15 +6,21 @@ grammar Pmm;
     import ast.statements.*;
     import ast.types.*;
 }
-program: //returns [Program ast;]:
-definition* main EOF
+program returns [Program ast;] locals [List<Definition> defs = new ArrayList<Definition>();]:
+(d1=definition {$defs.addAll($dl.ast);})* mn=main {$defs.add($mn.ast);}EOF{$ast = new Program($mn.start.getLine(),$mn.ast.getColumn(),$defs);}
+
        ;
-main: 'def main('parameters?'):' '{'f_body'}'
+main returns [FuncDefinition ast] locals [new List<Definition> params = new ArrayList<Definition>();]:
+ 'def main('(p=parameters {$params.addAll($p.ast);})?
+'):' '{'bod=f_body'}'
+{ast = new FuncDefinition($p.start.getLine(),$p.start.getCharPositionInLine()+1,"main",
+new FunctionType($p.start.getLine(),$p.start.getCharPositionInLine()+1,$params,new Void()),$fbod.ast);}
 ;
 
 
 
-definition: 'def' ID '(' parameters? '):' type? '{' f_body?'}' //no admite id de uno de longitud wtff
+definition:
+           'def' ID '(' (p=parameters {$params.addAll($p.ast);})?  '):' type? '{' f_body?'}' //no admite id de uno de longitud wtff
           | ID(',' ID)* ':' type ';'
           ;
 
@@ -47,11 +53,11 @@ expression:// returns [Expression ast;]:
           | expression'.'expression
           | '-' expression
           | expression '[' expression ']'
-          //{$ast = new ArrayAccess()}
+          {$ast = new ArrayAccess()}
           | '('expression')'
           | '('type')' expression
           | INT_CONSTANT
-          //{$ast = new IntLiteral($INT_CONSTANT.getLine(),$INT_CONSTANT.getCharPositionInLine()+1,LexerHelper.lexemeToInt($INT_CONSTANT.getText());}
+          {$ast = new IntLiteral($INT_CONSTANT.getLine(),$INT_CONSTANT.getCharPositionInLine()+1,LexerHelper.lexemeToInt($INT_CONSTANT.getText());}
           | REAL_CONSTANT
           //{$ast = new DoubleLiteral($REAL_CONSTANT.getLine(),$REAL_CONSTANT.getCharPositionInLine()+1,LexerHelper.lexemeToReal($REAL_CONSTANT.getText());}
           | CHAR_CONSTANT
